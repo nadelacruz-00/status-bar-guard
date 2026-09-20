@@ -1,5 +1,7 @@
 #!/system/bin/sh
-# Dump package/path data for the Status Bar Guard WebUI meta refresh.
+# Dump package/path data. Legacy: this fed tools/gen_meta.py to build
+# appmeta.js. Since v2.3 the WebUI reads `pm` directly and needs no metadata,
+# but pull-to-refresh still runs this so the dump stays current.
 D=/data/data/cn.com.omnimind.bot/workspace/statusbarguard-webui
 mkdir -p $D
 pm list packages -f 2>/dev/null | sed 's/^package://' | awk '{n=split($0,a,"="); pkg=a[n]; path=substr($0,1,length($0)-length(pkg)-1); printf "%s\t%s\n", pkg, path}' | sort > $D/pkg_paths_all.tsv

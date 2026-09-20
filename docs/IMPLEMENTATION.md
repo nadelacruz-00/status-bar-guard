@@ -51,7 +51,15 @@ Implemented to match Material's *swipe to refresh*:
 
 ---
 
-## Icon and label pipeline
+## Icon and label pipeline — **retired in v2.3**
+
+> **No longer used by the WebUI.** Since v2.3 the app list shows package names
+> only and derives the user/system split from `pm list packages -3` / `-s` at
+> runtime. Nothing in the shipped UI reads `appmeta.js`, so `build.py` no longer
+> inlines it and the zip dropped from ~750 KB to ~16 KB. The notes below are
+> kept because the extraction problems are subtle and worth not re-discovering
+> if icons are ever brought back. `tools/gen_meta.py` and the package dump in
+> `refresh-dump.sh` still work, they are simply not on the WebUI's path.
 
 `appmeta.js` is **generated, never committed** — it contains the device's installed app list and icons, which is private data. It is listed in `.gitignore`.
 
@@ -125,7 +133,7 @@ status-bar-guard/
 │   ├── service.sh              # boot hook — starts the daemon
 │   ├── uninstall.sh            # restores the shade, removes config
 │   ├── daemon.sh               # the foreground-watching loop
-│   ├── refresh-dump.sh         # dumps installed packages for icon generation
+│   ├── refresh-dump.sh         # dumps installed packages (legacy: fed gen_meta.py)
 │   ├── config.example          # MODE=auto|global|off
 │   ├── apps.conf.example       # one package name per line
 │   └── META-INF/com/google/android/
@@ -135,9 +143,9 @@ status-bar-guard/
 │   ├── index.html              # markup (assets are inlined at build time)
 │   ├── app.css                 # styles
 │   ├── app.js                  # logic: bridge, app list, pull-to-refresh
-│   └── build.py                # inlines CSS/JS/meta → dist/index.html
+│   └── build.py                # inlines CSS/JS → dist/index.html
 ├── tools/
-│   └── gen_meta.py             # generates appmeta.js (labels + icons) from APKs
+│   └── gen_meta.py             # legacy: generated appmeta.js (labels + icons); unused since v2.3
 ├── .github/workflows/
 │   └── release.yml             # builds the flashable zip on every push
 ├── build_zip.sh                # assembles the flashable module zip

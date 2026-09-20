@@ -1,13 +1,14 @@
 /* Status Bar Guard — logic (KernelSU WebUI) */
 'use strict';
 const SEP = '\u0001';
-const META = window.APP_META || {};
-const META_BUILD = window.APP_META_BUILD || '?';
 
 let DIR = '/data/adb/statusbarguard';
 let APPS = DIR + '/apps.conf', CFG = DIR + '/config', LOG = DIR + '/statusbarguard.log';
 let pkgs = [], picked = new Set(), pending = new Set(), dirty = false, style = 'detect', apiLabel = '?';
 let showSystem = false; /* set from lsGet() below once helpers are defined */
+/* packages reported by `pm list packages -s` but not by -3: the system apps.
+   Filled by load(); the rows read it through isSys(). */
+let SYS = new Set();
 
 const $ = (id) => document.getElementById(id);
 /* null-safe helpers: a missing element must never abort boot */
@@ -70,13 +71,9 @@ function lines(s) {
   const raw = t.indexOf(SEP) >= 0 ? t.split(SEP) : t.split('\n');
   return raw.map((x) => x.trim()).filter(Boolean);
 }
-function label(p) { return (META[p] && META[p].label) || pretty(p); }
-function isSys(p) { return !!(META[p] && META[p].sys); }
-function pretty(p) {
-  const a = String(p).split('.');
-  let leaf = a.length > 2 ? a.slice(2).join('.') : (a.length > 1 ? a[1] : p);
-  return leaf.replace(/[._-]+/g, ' ').trim().replace(/\b\w/g, (c) => c.toUpperCase());
-}
+/* User vs system is read straight from `pm list packages -s|-3` (see load()),
+   so it never depends on pre-built per-app metadata. */
+function isSys(p) { return SYS.has(p); }
 function esc(s) { return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 function toast(msg) {
   const t = $('toast'); t.textContent = msg; t.hidden = false;
@@ -88,9 +85,9 @@ function fgPkg(l) { const m = /u0\s+([A-Za-z0-9_.]+\/[A-Za-z0-9_.$]+)/.exec(l ||
 
 /* ---------- state ---------- */
 function counts() {
-  let u = 0, s = 0, icons = 0;
-  pkgs.forEach((p) => { isSys(p) ? s++ : u++; if (META[p] && META[p].icon) icons++; });
-  return { u, s, icons };
+  let u = 0, s = 0;
+  pkgs.forEach((p) => { isSys(p) ? s++ : u++; });
+  return { u, s };
 }
 /* ---------- pull-to-refresh (Material "swipe to refresh") ----------
    Drag down at the very top of the app list:
@@ -260,25 +257,25 @@ function syncState() {
 }
 
 /* ---------- render ---------- */
+/* A row is the package name and nothing else. System apps carry a badge and a
+   stripe so the two kinds stay distinguishable, including in "Selected",
+   where both are mixed together. */
 function rowHTML(p) {
   const on = pending.has(p);
-  const m = META[p] || {};
-  const av = m.icon
-    ? '<img class="ic" src="data:image/png;base64,' + m.icon + '" alt="">'
-    : '<div class="av" style="background:hsl(' + (m.hue || 210) + ' 55% 42%)">' + esc(label(p).slice(0, 1).toUpperCase()) + '</div>';
-  return '<label class="row' + (on ? ' on' : '') + '" data-pkg="' + esc(p) + '">' +
-    av +
-    '<span class="txt"><span class="nm">' + esc(label(p)) + (m.sys ? '<span class="badge">system</span>' : '') +
-    '</span><span class="pk">' + esc(p) + '</span></span>' +
+  const sys = isSys(p);
+  return '<label class="row' + (on ? ' on' : '') + (sys ? ' sys' : '') + '" data-pkg="' + esc(p) + '">' +
+    '<span class="pkg">' + esc(p) + '</span>' +
+    (sys ? '<span class="badge sys">system</span>' : '<span class="badge usr">user</span>') +
     '<input type="checkbox" data-pkg="' + esc(p) + '"' + (on ? ' checked' : '') + '>' +
     '</label>';
 }
 function render() {
   const q = ($('search').value || '').toLowerCase().trim();
   const pool = pkgs.filter((p) => showSystem || !isSys(p));
-  const match = (p) => !q || label(p).toLowerCase().includes(q) || p.toLowerCase().includes(q);
-  const sel = [...pending].filter(match).sort((a, b) => label(a).localeCompare(label(b)));
-  const rest = pool.filter((p) => !pending.has(p) && match(p)).sort((a, b) => label(a).localeCompare(label(b)));
+  const match = (p) => !q || p.toLowerCase().includes(q);
+  const cmp = (a, b) => a.localeCompare(b);
+  const sel = [...pending].filter(match).sort(cmp);
+  const rest = pool.filter((p) => !pending.has(p) && match(p)).sort(cmp);
   let html = '';
   if (sel.length) html += '<div class="sect">Selected · ' + sel.length + '</div>' + sel.map(rowHTML).join('');
   if (rest.length) html += '<div class="sect">' + (sel.length ? 'All apps · ' : '') + rest.length +
@@ -299,7 +296,7 @@ function render() {
   if ($('clearSearch')) $('clearSearch').hidden = !q;
   const c = counts();
   txt('pkgCount', c.u + (showSystem ? ' + ' + c.s + ' sys' : ''));
-    txt('sysCount', '(' + c.s + ')');
+  txt('sysCount', '(' + c.s + ')');
   syncState();
 }
 
@@ -326,7 +323,7 @@ async function refreshStatus() {
 
   const f = await sh('dumpsys window 2>/dev/null | grep -m1 mCurrentFocus');
   const fp = fgPkg(f.stdout);
-  txt('focusPill', 'foreground: ' + (fp === '?' ? '?' : label(fp)));
+  txt('focusPill', 'foreground: ' + (fp === '?' ? '?' : fp));
 
   const m = await sh("grep '^MODE=' " + CFG + ' 2>/dev/null | cut -d= -f2');
   const mode = ((m.stdout || '').trim()) || 'auto';
@@ -343,13 +340,12 @@ async function load() {
   const user = lines(p.stdout);
   const s = await sh('pm list packages -s 2>/dev/null | sed "s/^package://" | sort | tr "\\n" "' + SEP + '"');
   const sysm = lines(s.stdout);
-  const set = new Set(user);
-  sysm.forEach((x) => { if (!set.has(x)) user.push(x); });
-  pkgs = user;
-  if (META_BUILD && META_BUILD !== '?') {
-    const c = counts();
-    txt('metaInfo', 'icons rebuilt ' + META_BUILD + ' · ' + c.icons + ' with icons');
-  }
+  /* Classify from pm itself: listed by -s but not by -3 => system app.
+     Anything in both stays "user", which matches how pm treats an updated
+     system app that the user could uninstall. */
+  const uset = new Set(user);
+  SYS = new Set(sysm.filter((x) => !uset.has(x)));
+  pkgs = user.concat([...SYS]);
   const a = await sh('grep -vE "^[[:space:]]*(#|$)" ' + APPS + ' 2>/dev/null | tr "\\n" "' + SEP + '"');
   picked = new Set(lines(a.stdout));
   pending = new Set(picked);
@@ -364,7 +360,6 @@ function bind() {
   /* measure AFTER the container is visible, otherwise the list has zero height */
   on('search', 'input', render);
   on('clearSearch', 'click', () => { const s = $('search'); if (s) { s.value = ''; render(); s.focus(); } });
-  on('reload', 'click', null); /* removed: folded into ⟳ refresh */
   on('clear', 'click', () => { pending.clear(); render(); toast('Cleared — press Save to apply'); });
   const sys = on('sysToggle', 'change', () => {
     showSystem = !!sys.checked;
@@ -372,10 +367,8 @@ function bind() {
     render();
   });
   if (sys) sys.checked = showSystem;
-  /* single, unambiguous refresh: re-scan packages on the Android side, then re-read config + status.
-     The button is hidden by default and revealed by scrolling the list up (or reaching the very top). */
-  let refreshing = false;
-document.querySelectorAll('input[name=mode]').forEach((r) => r.addEventListener('change', async () => {
+  /* single, unambiguous refresh: re-scan packages on the Android side, then re-read config + status. */
+  document.querySelectorAll('input[name=mode]').forEach((r) => r.addEventListener('change', async () => {
     const m = document.querySelector('input[name=mode]:checked').value;
     await sh("sed -i 's/^MODE=.*/MODE=" + m + "/' " + CFG);
     toast('Mode: ' + m); await refreshStatus();

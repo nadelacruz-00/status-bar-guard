@@ -34,14 +34,9 @@ OUT="$ROOT/dist/${NAME}.zip"
 echo "==> building $NAME"
 
 # ── 1. single-file WebUI ────────────────────────────────────────────────────
-# appmeta.js is generated from a real device and is gitignored; CI (and a fresh
-# clone) has no such file. Stub it so the build still produces a working UI —
-# the app list falls back to prettified package names + letter avatars, and
-# users regenerate the real metadata on-device via pull-to-refresh.
-if [ ! -f webui/appmeta.js ]; then
-  echo "    webui/appmeta.js missing -> stubbing empty APP_META"
-  printf 'window.APP_META = {};\n' > webui/appmeta.js
-fi
+# The UI lists packages by name and reads user/system straight from `pm` on the
+# device, so it needs no pre-built metadata: the build is reproducible from the
+# repo alone, on a clone or in CI.
 "$PY" webui/build.py
 
 # ── 2. stage the module tree ────────────────────────────────────────────────

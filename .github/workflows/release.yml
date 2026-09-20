@@ -21,12 +21,6 @@ jobs:
         with:
           python-version: '3.x'
 
-      # CI has no device to extract icons/labels from. The WebUI already falls
-      # back to prettified package names + letter avatars, so an empty
-      # APP_META is enough to produce a working single-file build.
-      - name: Stub appmeta.js
-        run: printf 'window.APP_META = {};\n' > webui/appmeta.js
-
       - name: Build single-file WebUI
         run: python3 webui/build.py
 

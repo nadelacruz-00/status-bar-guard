@@ -5,7 +5,9 @@ A **KernelSU module with a WebUI** that suppresses the Android status bar and no
 Push the mouse to the top edge and the notification shade drops down, stealing focus. Every "obvious" fix fails — `policy_control` is ignored on modern OxygenOS, and `send-disable-flag expansion` uses a token that doesn't exist. This module uses the correct AOSP flag and applies it contextually.
 
 <p align="center">
-  <img src="docs/screenshot-webui.png" width="72%" alt="Status Bar Guard WebUI — app list with real icons, mode selector and per-app checkboxes">
+  <img src="docs/screenshot-webui.png" width="72%" alt="Status Bar Guard WebUI — app list keyed by package name with USER badges, mode selector and per-app checkboxes">
+  <br>
+  <img src="docs/screenshot-webui-system.png" width="72%" alt="The same list with system apps revealed; those rows carry an amber SYSTEM badge and left stripe">
 </p>
 
 ## What it does
@@ -30,7 +32,7 @@ This is what makes it *effectively* per-app even though the underlying flags are
 | `global` | Shade blocked everywhere |
 | `off` | Everything restored |
 
-**Also:** real app names and icons (read from each APK's manifest and the launcher's own resource table), search, a system-apps toggle, and pull-to-refresh.
+**The app list is deliberately plain:** one row per **package name**, no icons and no display names. Each row is labelled `user` or `system`, read live from `pm list packages -3` / `-s` on the device — so the UI needs no per-device metadata and looks identical on every install.
 
 ## Requirements
 
@@ -64,15 +66,16 @@ Then open the WebUI: **KernelSU Manager → Modules → Status Bar Guard → Web
 
 ## Usage
 
-**WebUI** — tick the apps you want protected, then **Save & apply** (the daemon picks it up within ~2 s).
+**WebUI** — tick the packages you want protected, then **Save & apply** (the daemon picks it up within ~2 s).
 
 | Control | Purpose |
 |---|---|
 | Mode | `auto` / `global` / `off` |
-| Apps list | Tick an app; search by name or package |
+| Apps list | One row per package name, labelled `user` / `system`; tick to protect |
+| Search | Filters package names |
 | Show system apps | Reveals system packages (hidden by default) |
 | Pull down | Re-scan installed apps (new installs / uninstalls) |
-| Save & apply | Writes `apps.conf` and verifies it on disk |
+| Save & apply | Writes `apps.conf`, then reads it back and shows what the daemon will actually see |
 
 **Command line**
 
@@ -90,11 +93,10 @@ The WebView does not load sibling files from `webroot/`, so everything is inline
 
 ```sh
 cd webui
-python3 ../tools/gen_meta.py   # optional: real app names + icons (reads installed APKs)
 python3 build.py               # → dist/index.html
 ```
 
-`gen_meta.py` needs `python3`, `Pillow` and `androguard`. Skip it and the UI falls back to package-derived names and letter avatars.
+No metadata step is needed: the UI reads the package list and the user/system split from `pm` at runtime.
 
 To produce the flashable module zip:
 
@@ -102,7 +104,7 @@ To produce the flashable module zip:
 ./build_zip.sh     # → dist/status-bar-guard-<version>-<sha>.zip
 ```
 
-It rebuilds `dist/index.html`, stages `module/` + `META-INF/` + `webroot/index.html`, and zips the result. If `appmeta.js` is absent it is stubbed, so a clone or CI build still produces a working UI (package-derived names, letter avatars) — regenerate it locally for real icons.
+It rebuilds `dist/index.html`, stages `module/` + `META-INF/` + `webroot/index.html`, and zips the result. The build is reproducible from the repo alone, on a clone or in CI.
 
 ## Troubleshooting
 
@@ -110,7 +112,7 @@ It rebuilds `dist/index.html`, stages `module/` + `META-INF/` + `webroot/index.h
 |---|---|
 | WebUI says "daemon stopped" | `su -c "nohup sh /data/adb/statusbarguard/daemon.sh >/dev/null 2>&1 &"` |
 | App list is empty | Open the page inside KsuWebUI / the KernelSU manager — not an external browser |
-| Some icons missing | Expected: vector-only icons fall back to letter avatars. Re-run `gen_meta.py` |
+| Some packages missing | Pull down to re-scan; system packages need **Show system apps** |
 | Shade returns after a while | SystemUI restarted and the daemon isn't running — check the log |
 | Changes don't apply | Confirm `apps.conf` has real newlines (not literal `\n`) and `MODE=auto` |
 | Bar contents still visible | Add `system-icons clock notification-icons` to the flag list in `daemon.sh` |
@@ -119,14 +121,14 @@ It rebuilds `dist/index.html`, stages `module/` + `META-INF/` + `webroot/index.h
 
 - The bar's **space may remain reserved** as an empty strip in some apps; apps that draw edge-to-edge look fully immersive.
 - **~2 s latency** when switching apps (the daemon's poll interval).
-- **Icons are not themed** — they match the launcher's default icon set, not its themed/monochrome variants.
+- **Rows show package names, not friendly app names** — deliberate: package names are unambiguous, sort predictably, and need no per-device metadata.
 - **Per-app immersive mode is impossible on modern Android** (`policy_control` is ignored), which is why this module exists.
 
 Verified on **OnePlus Pad 3 (OPD2415)**, OxygenOS 16.0.1.302, KernelSU — with XFCE via Termux:X11 + Droidspaces.
 
 ## More
 
-Contributor deep-dives — the KernelSU WebUI bridge quirks, pull-to-refresh implementation, icon pipeline, and why each failed approach fails — live in **[docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md)**.
+Contributor deep-dives — the KernelSU WebUI bridge quirks, pull-to-refresh implementation, the retired icon/label pipeline, and why each failed approach fails — live in **[docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md)**.
 
 ## License
 

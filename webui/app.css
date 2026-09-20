@@ -96,7 +96,7 @@ input[type=text]:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 3px
   100%{stroke-dasharray:86 125;stroke-dashoffset:-122}
 }
 
-/* tools row: system-apps switch + meta info */
+/* tools row: system-apps switch */
 .tools{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 0 10px}
 /* list wrapper: float refresh pinned to the list's top-right */
 .listwrap{position:relative}
@@ -109,28 +109,30 @@ input[type=text]:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 3px
 .switch input:checked+.track .knob{left:21px;background:var(--acc)}
 .switch .lbl{user-select:none}
 .switch .lbl em{font-style:normal;color:var(--mut)}
-.badge{display:inline-block;margin-left:7px;padding:1px 6px;border-radius:99px;font-size:9.5px;letter-spacing:.4px;
-  text-transform:uppercase;color:#9fb0c6;border:1px solid var(--line2);background:#131b24;vertical-align:middle}
+
+/* user / system badge — the only per-row decoration left */
+.badge{display:inline-block;flex:0 0 auto;padding:1px 6px;border-radius:99px;font-size:9.5px;letter-spacing:.4px;
+  text-transform:uppercase;border:1px solid var(--line2);background:#131b24;vertical-align:middle}
+.badge.sys{color:#fcd88a;border-color:rgba(251,191,36,.42);background:rgba(251,191,36,.09)}
+.badge.usr{color:#8fa3bd}
 
 /* list */
 .list{max-height:52vh;overflow:auto;border:1px solid var(--line);border-radius:var(--r2);background:#0f151c}
 .sect{position:sticky;top:0;z-index:2;background:#111823;padding:7px 14px;font-size:11px;letter-spacing:.9px;
   text-transform:uppercase;color:var(--mut);border-bottom:1px solid var(--line)}
-.row{display:flex;align-items:center;gap:12px;padding:10px 12px;border-bottom:1px solid #1b232d;cursor:pointer}
+.row{display:flex;align-items:center;gap:10px;padding:11px 12px;border-bottom:1px solid #1b232d;cursor:pointer}
 .row:last-child{border-bottom:none}
 .row:hover{background:#131b24}
+/* system apps: amber stripe + faint tint, so they read differently from user apps */
+.row.sys{background:#121a23;box-shadow:inset 3px 0 0 rgba(251,191,36,.5)}
+.row.sys:hover{background:#16202b}
 .row.on{background:linear-gradient(90deg,rgba(76,141,255,.14),rgba(76,141,255,.04))}
-.row .ic{
-  width:40px;height:40px;border-radius:11px;flex:0 0 auto;object-fit:cover;
-  background:#0a0f15;border:1px solid var(--line)
+/* one text column: the package name. No icon, no display name. */
+.row .pkg{
+  min-width:0;flex:1;font:12.5px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis
 }
-.row .av{
-  width:40px;height:40px;border-radius:11px;flex:0 0 auto;display:grid;place-items:center;
-  font-weight:650;font-size:16px;color:#fff;border:1px solid rgba(255,255,255,.08)
-}
-.row .txt{min-width:0;flex:1}
-.row .nm{display:block;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.row .pk{display:block;font-size:11px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row.on .pkg{font-weight:600}
 .row input[type=checkbox]{
   appearance:none;width:24px;height:24px;flex:0 0 auto;border-radius:7px;
   border:1.5px solid var(--line2);background:#0d131a;cursor:pointer;position:relative;transition:.12s
@@ -190,4 +192,6 @@ input[type=text]:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 3px
 @media (max-width:420px){
   .seg{grid-template-columns:1fr}
   .baractions .btn{padding:9px 12px;font-size:13px}
+  .row .pkg{font-size:11.5px}
+  .badge{font-size:9px;padding:1px 5px}
 }
