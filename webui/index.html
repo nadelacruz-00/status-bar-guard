@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Status Bar Guard</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div id="boot" class="boot">Loading…</div>
+
+<div id="app" hidden>
+  <header class="top">
+    <div class="brand">
+      <div class="logo">SG</div>
+      <div>
+        <h1>Status Bar Guard</h1>
+        <div class="sub">Per-app status bar &amp; shade control</div>
+      </div>
+    </div>
+    <div class="live">
+      <span id="daemonPill" class="pill">…</span>
+      <span id="focusPill" class="pill ghost">foreground: ?</span>
+    </div>
+  </header>
+
+  <section class="card">
+    <div class="cardhead">
+      <h2>Mode</h2>
+      <span id="modeHint" class="hint"></span>
+    </div>
+    <div class="seg" role="radiogroup" aria-label="Mode">
+      <label><input type="radio" name="mode" value="auto" checked><span>Auto<em>per-app list</em></span></label>
+      <label><input type="radio" name="mode" value="global"><span>Global<em>shade blocked everywhere</em></span></label>
+      <label><input type="radio" name="mode" value="off"><span>Off<em>everything restored</em></span></label>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="cardhead">
+      <h2>Apps</h2>
+      <span class="hint"><b id="selCount">0</b> selected · <span id="pkgCount">0</span> installed</span>
+    </div>
+    <p class="note">Checked apps get a blank status bar and a blocked shade while they are in the foreground.</p>
+    <p class="note subnote">⟳ re-scans your installed apps (new installs, uninstalls). Names and icons are pre-built — ask the agent to rebuild them after installing many new apps.</p>
+    <div class="searchwrap">
+      <svg viewBox="0 0 24 24" class="ic"><path d="M10 4a6 6 0 1 0 3.5 10.9l5 5 1.4-1.4-5-5A6 6 0 0 0 10 4m0 2a4 4 0 1 1 0 8 4 4 0 0 1 0-8"/></svg>
+      <input id="search" type="text" placeholder="Search apps…" autocomplete="off" spellcheck="false">
+      <button id="clearSearch" class="iconbtn" title="Clear" hidden>✕</button>
+    </div>
+    <div class="tools">
+      <label class="switch">
+        <input type="checkbox" id="sysToggle">
+        <span class="track"><span class="knob"></span></span>
+        <span class="lbl">Show system apps <em id="sysCount">(0)</em></span>
+      </label>
+      <span class="hint" id="metaInfo"></span>
+    </div>
+    <div class="listwrap">
+      <div class="ptr" aria-hidden="true">
+        <div id="ptrBox" class="ptrBox">
+          <svg id="ptrRing" class="ptrRing" viewBox="0 0 48 48" width="30" height="30" aria-hidden="true">
+            <circle class="ptrTrack" cx="24" cy="24" r="20" fill="none" stroke-width="2.6"/>
+            <circle class="ptrArc" cx="24" cy="24" r="20" fill="none" stroke-width="3"
+                    stroke-linecap="round"/>
+          </svg>
+        </div>
+      </div>
+      <div id="applist" class="list"></div>
+    </div>
+    <div id="empty" class="empty" hidden>No matches</div>
+  </section>
+
+  <section class="card">
+    <div class="cardhead"><h2>Activity</h2><span class="hint" id="apiPill">bridge: ?</span></div>
+    <pre id="log" class="log">…</pre>
+  </section>
+
+  <footer class="bar">
+    <div class="barstate"><span id="dirtyDot" class="dot"></span><span id="dirtyText">Saved</span></div>
+    <div class="baractions">
+      <button id="clear" class="btn ghost">Clear all</button>
+      <button id="save" class="btn primary" disabled>Save &amp; apply</button>
+    </div>
+  </footer>
+</div>
+
+<div id="toast" class="toast" hidden></div>
+<div id="banner" class="banner" hidden></div>
+
+<script src="appmeta.js"></script>
+<script>
+  window.addEventListener('error', function (e) {
+    var b = document.getElementById('boot');
+    if (b && !b.hidden) b.textContent = 'Error: ' + (e.message || e.type) + '\n' + (e.filename || '');
+    var bn = document.getElementById('banner');
+    if (bn) { bn.hidden = false; bn.textContent = 'JS error: ' + (e.message || e.type) + ' @ ' + (e.filename || '') + ':' + (e.lineno || 0); }
+  });
+  window.addEventListener('unhandledrejection', function (e) {
+    var bn = document.getElementById('banner');
+    if (bn) { bn.hidden = false; bn.textContent = 'Promise rejection: ' + ((e.reason && e.reason.message) || e.reason); }
+  });
+</script>
+<script src="app.js"></script>
+</body>
+</html>

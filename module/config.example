@@ -1,0 +1,2 @@
+# MODE: auto = per-app (apps.conf list) | global = shade blocked everywhere | off
+MODE=auto

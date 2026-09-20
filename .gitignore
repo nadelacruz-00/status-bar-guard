@@ -1,0 +1,27 @@
+# ─────────────────────────────────────────────────────────────
+#  Generated from YOUR device — never commit these.
+#  appmeta.js contains your installed app list + icons (private).
+# ─────────────────────────────────────────────────────────────
+appmeta.js
+pkg_paths_all.tsv
+pkg_paths.tsv
+pkgs_user.txt
+pkgs_system.txt
+gen*.log
+
+# ── Build output ──
+dist/
+__pycache__/
+*.py[cod]
+
+# ── Local config / runtime state ──
+config
+apps.conf
+statusbarguard.log
+x11shade.log
+
+# ── Scratch: debug screenshots & test captures ──
+# (docs/ screenshots are intentionally tracked)
+_*.png
+/tmp/
+*.tmp
