@@ -387,7 +387,19 @@ document.querySelectorAll('input[name=mode]').forEach((r) => r.addEventListener(
       ' ' + q('# One package name per line. Managed by the Status Bar Guard WebUI.') + ' > ' + APPS;
     if (list.length) cmd += " && printf '%s\\n' " + list.map(q).join(' ') + ' >> ' + APPS;
     const r = await sh(cmd);
-    toast(r.stderr && r.errno !== 0 ? 'Save failed' : 'Saved — applies within ~2s');
+    if (r.errno !== 0 && r.stderr) { toast('Save FAILED: ' + r.stderr); return; }
+    /* trust but verify: read back what the daemon will actually see */
+    const rb = await sh('grep -vE "^[[:space:]]*(#|$)" ' + APPS + ' 2>/dev/null | sort | tr "\\n" "' + SEP + '"');
+    const saved = lines(rb.stdout).sort();
+    const same = saved.length === list.length && saved.every((p, i) => p === list[i]);
+    if (!same) {
+      banner('SAVE MISMATCH — the file on disk does not match this UI.\n' +
+        'UI:    ' + (list.join(', ') || '(empty)') + '\n' +
+        'Disk:  ' + (saved.join(', ') || '(empty)'));
+      toast('Save failed verification');
+    } else {
+      toast(list.length ? 'Saved ' + list.length + ' app(s) — applies in ~2s' : 'Saved (empty list) — nothing suppressed');
+    }
     await load(); await refreshStatus();
   });
   bindPTR();

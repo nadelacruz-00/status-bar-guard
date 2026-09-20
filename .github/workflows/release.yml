@@ -1,0 +1,60 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      # CI has no device to extract icons/labels from. The WebUI already falls
+      # back to prettified package names + letter avatars, so an empty
+      # APP_META is enough to produce a working single-file build.
+      - name: Stub appmeta.js
+        run: printf 'window.APP_META = {};\n' > webui/appmeta.js
+
+      - name: Build single-file WebUI
+        run: python3 webui/build.py
+
+      - name: Build flashable zip
+        run: |
+          chmod +x build_zip.sh
+          ./build_zip.sh
+
+      - name: Derive release tag
+        id: tag
+        run: |
+          VER=$(sed -n 's/^version=//p' module/module.prop | head -1)
+          SHA=$(git rev-parse --short HEAD)
+          echo "tag=${VER}-${SHA}" >> "$GITHUB_OUTPUT"
+          ls -la dist/
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: Status Bar Guard ${{ steps.tag.outputs.tag }}
+          body: |
+            Automated build of `module.prop` **${{ steps.tag.outputs.tag }}**.
+
+            Flash the attached zip in the KernelSU / KernelSU Next / Magisk manager,
+            then open the module's WebUI and pick the apps whose status bar should
+            be suppressed.
+
+            Existing `apps.conf` / `config` in `/data/adb/statusbarguard` are preserved.
+          files: dist/*.zip
+          generate_release_notes: true
