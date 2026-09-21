@@ -16,7 +16,7 @@ DATA=/data/adb/statusbarguard
 
 ui_print " "
 ui_print "*******************************"
-ui_print "  Status Bar Guard  v2.2"
+ui_print "  Status Bar Guard  v2.6.1"
 ui_print "*******************************"
 ui_print " "
 

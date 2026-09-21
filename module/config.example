@@ -1,2 +1,21 @@
 # MODE: auto = per-app (apps.conf list) | global = shade blocked everywhere | off
 MODE=auto
+
+# POLL: seconds between foreground checks. Lower = faster reaction when you
+# switch apps, higher = less CPU. Default 0.5. Since v2.6.1 a cycle forks no
+# processes at all (the foreground app comes from a long-lived logcat feed), so
+# ~0.7% of one core. Fractional values are supported.
+#POLL=0.5
+
+# HEARTBEAT_SECS: how often an ACTIVE flag set is re-asserted. The flags are
+# transient, so this bounds how long protection can be silently lost after a
+# SystemUI restart or any other external clear. Default 30.
+#HEARTBEAT_SECS=30
+
+# SUI_CHECK_SECS: how often to check for a SystemUI restart. That check needs a
+# pidof, which forks, so it is throttled. Default 10.
+#SUI_CHECK_SECS=10
+
+# RESYNC_SECS: how often to cross-check the logcat feed against a real dumpsys
+# query. This is the safety net if the feed ever misses an event. Default 30.
+#RESYNC_SECS=30

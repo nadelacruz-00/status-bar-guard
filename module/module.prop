@@ -1,6 +1,6 @@
 id=statusbarguard
 name=Status Bar Guard
-version=v2.3
-versionCode=5
+version=v2.6.1
+versionCode=11
 author=Omnibot
 description=Per-app status bar and notification shade suppression. While a checked app is in the foreground the status bar is blanked and the shade cannot drop; everything is restored elsewhere. WebUI: app list with checkboxes, master mode, live status. Config: /data/adb/statusbarguard/apps.conf

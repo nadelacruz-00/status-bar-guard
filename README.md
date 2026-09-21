@@ -17,7 +17,7 @@ Push the mouse to the top edge and the notification shade drops down, stealing f
 | **Block the shade** (mouse *or* finger) | `cmd statusbar send-disable-flag statusbar-expansion` → AOSP `DISABLE_EXPAND` |
 | **Blank the bar contents** (clock, icons, battery) | `cmd statusbar send-disable-flag system-icons clock notification-icons` |
 
-Those flags are global and **transient** (SystemUI restarts clear them), so a small daemon polls the foreground app every 2 s and re-asserts the right state:
+Those flags are global and **transient** (SystemUI restarts clear them), so a small daemon watches the foreground app and re-asserts the right state. It reads the foreground package from Android's `input_focus` event log rather than polling `dumpsys`, so a cycle forks **no processes at all** (~0.7 % of one core at the default 0.5 s):
 
 ```
 foreground app in apps.conf ?  ── yes ──> shade blocked + bar blanked
@@ -85,6 +85,7 @@ su -c "tail -f /data/adb/statusbarguard/statusbarguard.log"  # activity log
 su -c "echo com.example.app >> /data/adb/statusbarguard/apps.conf"
 su -c "cmd statusbar send-disable-flag none"                 # restore now
 su -c "sed -i 's/^MODE=.*/MODE=global/' /data/adb/statusbarguard/config"
+su -c "sed -i 's/^#*POLL=.*/POLL=0.25/' /data/adb/statusbarguard/config"   # faster reaction
 ```
 
 ## Building the WebUI
@@ -113,14 +114,15 @@ It rebuilds `dist/index.html`, stages `module/` + `META-INF/` + `webroot/index.h
 | WebUI says "daemon stopped" | `su -c "nohup sh /data/adb/statusbarguard/daemon.sh >/dev/null 2>&1 &"` |
 | App list is empty | Open the page inside KsuWebUI / the KernelSU manager — not an external browser |
 | Some packages missing | Pull down to re-scan; system packages need **Show system apps** |
-| Shade returns after a while | SystemUI restarted and the daemon isn't running — check the log |
+| Shade returns after a while | v2.4+ repairs this within ~30 s (SystemUI watchdog + heartbeat). On older builds the daemon kept a stale state cache and never re-asserted — restart it, or upgrade |
 | Changes don't apply | Confirm `apps.conf` has real newlines (not literal `\n`) and `MODE=auto` |
 | Bar contents still visible | Add `system-icons clock notification-icons` to the flag list in `daemon.sh` |
 
 ## Known limitations
 
 - The bar's **space may remain reserved** as an empty strip in some apps; apps that draw edge-to-edge look fully immersive.
-- **~2 s latency** when switching apps (the daemon's poll interval).
+- **Poll-interval latency** when switching apps: ≤0.5 s by default (`POLL` in the config; 2 s was the old default). Measured ≈0.5 s end-to-end on the Pad 3.
+- **Cost:** ~0.7 % of one core (≈0.09 % of an 8-core SoC) at the default `POLL`. This is down from 13.5 % of one core in v2.5 — see `docs/IMPLEMENTATION.md`.
 - **Rows show package names, not friendly app names** — deliberate: package names are unambiguous, sort predictably, and need no per-device metadata.
 - **Per-app immersive mode is impossible on modern Android** (`policy_control` is ignored), which is why this module exists.
 
