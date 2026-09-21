@@ -5,6 +5,18 @@ A **KernelSU module with a WebUI** that suppresses the Android status bar and no
 Push the mouse to the top edge and the notification shade drops down, stealing focus. Every "obvious" fix fails — `policy_control` is ignored on modern OxygenOS, and `send-disable-flag expansion` uses a token that doesn't exist. This module uses the correct AOSP flag and applies it contextually.
 
 <p align="center">
+  <b>Without Guard (Before)</b><br>
+  Pushing the mouse to the top edge pulls down the Android shade & status bar:<br>
+  <img src="docs/demo-without-guard.gif" width="85%" alt="Without Status Bar Guard: cursor touching top panel triggers the Android notification shade and status bar">
+</p>
+
+<p align="center">
+  <b>With Guard (After)</b><br>
+  Cursor pushes flush against the top panel — status bar is suppressed and shade never drops:<br>
+  <img src="docs/demo-with-guard.gif" width="85%" alt="With Status Bar Guard: cursor touches top panel cleanly without any Android overlay">
+</p>
+
+<p align="center">
   <img src="docs/screenshot-webui.png" width="72%" alt="Status Bar Guard WebUI — app list keyed by package name with USER badges, mode selector and per-app checkboxes">
   <br>
   <img src="docs/screenshot-webui-system.png" width="72%" alt="The same list with system apps revealed; those rows carry an amber SYSTEM badge and left stripe">
